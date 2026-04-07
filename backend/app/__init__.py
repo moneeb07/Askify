@@ -1,0 +1,1 @@
+"""Askify Backend — FastAPI Application"""
