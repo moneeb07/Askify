@@ -1,26 +1,18 @@
 """
-Voyage AI Embeddings Service
-Generates vector embeddings for document chunks and queries.
+Google Generative AI Embeddings Service
+Generates vector embeddings for document chunks and queries
+using Google's free embedding-001 model.
 """
 
-import voyageai
-from app.config import get_settings
-
-_client: voyageai.Client | None = None
-
-
-def get_voyage_client() -> voyageai.Client:
-    """Get or create a Voyage AI client (singleton)."""
-    global _client
-    if _client is None:
-        settings = get_settings()
-        _client = voyageai.Client(api_key=settings.voyage_api_key)
-    return _client
+from app.config import get_embeddings
 
 
 async def embed_chunks(chunks: list[str]) -> list[list[float]]:
     """
-    Generate embeddings for a list of text chunks (stub).
+    Generate embeddings for a list of text chunks.
+
+    Uses GoogleGenerativeAIEmbeddings (models/embedding-001).
+    Output dimension: 768.
 
     Args:
         chunks: List of text strings to embed
@@ -28,25 +20,20 @@ async def embed_chunks(chunks: list[str]) -> list[list[float]]:
     Returns:
         List of embedding vectors (one per chunk)
     """
-    # TODO: Implement in Phase 2
-    # client = get_voyage_client()
-    # result = client.embed(chunks, model="voyage-large-2", input_type="document")
-    # return result.embeddings
-    return [[] for _ in chunks]
+    embeddings_client = get_embeddings()
+    # embed_documents is sync in langchain-google-genai, run it directly
+    return embeddings_client.embed_documents(chunks)
 
 
 async def embed_query(query: str) -> list[float]:
     """
-    Generate an embedding for a single search query (stub).
+    Generate an embedding for a single search query.
 
     Args:
         query: The user's question
 
     Returns:
-        Embedding vector
+        Embedding vector (768-dim)
     """
-    # TODO: Implement in Phase 2
-    # client = get_voyage_client()
-    # result = client.embed([query], model="voyage-large-2", input_type="query")
-    # return result.embeddings[0]
-    return []
+    embeddings_client = get_embeddings()
+    return embeddings_client.embed_query(query)

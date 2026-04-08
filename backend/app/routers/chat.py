@@ -1,46 +1,89 @@
 """
 Chat Router
-Handles chat messages and agentic RAG conversations.
+Handles simple RAG chat (ask) and question suggestions.
+Uses Server-Sent Events (SSE) for streaming responses.
 """
 
-from fastapi import APIRouter
-from pydantic import BaseModel
+import json
+import logging
 
+from fastapi import APIRouter, HTTPException
+from sse_starlette.sse import EventSourceResponse
+
+from app.models import ChatAskRequest, ChatSuggestRequest, ChatSuggestResponse
+from app.services.chat_service import ask_with_rag, suggest_questions
+from app.services.supabase import get_document_metadata
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-class ChatRequest(BaseModel):
-    document_id: str
-    message: str
-    conversation_history: list[dict] = []
-
-
-class ChatResponse(BaseModel):
-    answer: str
-    sources: list[dict] = []
-    agent_steps: list[str] = []
-
-
-@router.post("/", response_model=ChatResponse)
-async def chat_with_document(request: ChatRequest):
+@router.post("/ask")
+async def chat_ask(request: ChatAskRequest):
     """
-    Send a message to chat with an uploaded document.
+    Ask a question about an uploaded document.
 
-    Agent flow (to be implemented):
-    1. Receive user query
-    2. Agent decides search strategy
-    3. Retrieve relevant chunks from Pinecone
-    4. Agent may do multiple retrieval passes
-    5. Synthesize answer with Gemini
-    6. Return answer with source references
+    Uses simple RAG pipeline:
+      question → embed → Pinecone top 5 → Gemini → streamed answer
+
+    Returns: Server-Sent Events stream with:
+      - event: token  → {"content": "..."} for each token
+      - event: sources → {"content": [...]} with source chunks
+      - event: done → signals end of stream
     """
-    return ChatResponse(
-        answer="Chat endpoint is a stub. Implementation coming in Phase 2.",
-        sources=[],
-        agent_steps=[
-            "receive_query",
-            "plan_search",
-            "retrieve_chunks",
-            "synthesize_answer",
-        ],
-    )
+    # Verify document exists and is ready
+    doc = await get_document_metadata(request.document_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if doc.get("status") != "ready":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Document is not ready for chat. Current status: {doc.get('status')}",
+        )
+
+    async def event_generator():
+        try:
+            history = [msg.model_dump() for msg in request.history]
+            async for event in ask_with_rag(
+                document_id=request.document_id,
+                question=request.question,
+                history=history,
+            ):
+                yield {
+                    "event": event["type"],
+                    "data": json.dumps(event["content"]),
+                }
+            yield {"event": "done", "data": "{}"}
+        except Exception as e:
+            logger.error(f"Chat stream error: {e}", exc_info=True)
+            yield {
+                "event": "error",
+                "data": json.dumps({"detail": str(e)}),
+            }
+
+    return EventSourceResponse(event_generator())
+
+
+@router.post("/suggest", response_model=ChatSuggestResponse)
+async def chat_suggest(request: ChatSuggestRequest):
+    """
+    Generate 3-4 opening questions based on the document content.
+
+    Called when a document finishes processing to populate suggestion pills.
+    """
+    # Verify document exists and is ready
+    doc = await get_document_metadata(request.document_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if doc.get("status") != "ready":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Document is not ready. Current status: {doc.get('status')}",
+        )
+
+    try:
+        suggestions = await suggest_questions(request.document_id)
+        return ChatSuggestResponse(suggestions=suggestions)
+    except Exception as e:
+        logger.error(f"Suggest failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate suggestions: {str(e)}")

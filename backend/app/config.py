@@ -1,25 +1,24 @@
 """
 Askify Backend Configuration
 Loads environment variables via Pydantic BaseSettings.
+Initializes singleton clients for Gemini, Embeddings, and Pinecone.
 """
 
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from pinecone import Pinecone
+
 
 class Settings(BaseSettings):
     # ── Supabase ──
     supabase_url: str = ""
-    supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
 
     # ── Pinecone ──
     pinecone_api_key: str = ""
     pinecone_index_name: str = "askify-docs"
-    pinecone_environment: str = "us-east-1"
-
-    # ── Voyage AI ──
-    voyage_api_key: str = ""
 
     # ── Gemini ──
     gemini_api_key: str = ""
@@ -27,7 +26,7 @@ class Settings(BaseSettings):
     # ── App Config ──
     cors_origins: str = "http://localhost:3000"
     upload_max_size_mb: int = 10
-    chunk_size: int = 512
+    chunk_size: int = 500
     chunk_overlap: int = 50
 
     model_config = {
@@ -43,3 +42,46 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+
+# ── Singleton Clients ──────────────────────────────────────────────────────────
+
+_embeddings = None
+_llm = None
+_pinecone_client = None
+_pinecone_index = None
+
+
+def get_embeddings() -> GoogleGenerativeAIEmbeddings:
+    global _embeddings
+    if _embeddings is None:
+        settings = get_settings()
+        _embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/gemini-embedding-001",
+            google_api_key=settings.gemini_api_key,
+        )
+    return _embeddings
+
+
+def get_llm() -> ChatGoogleGenerativeAI:
+    """Get or create Gemini 2.5 Flash LLM client (singleton)."""
+    global _llm
+    if _llm is None:
+        settings = get_settings()
+        _llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=settings.gemini_api_key,
+            temperature=0.3,
+            streaming=True,
+        )
+    return _llm
+
+
+def get_pinecone_index():
+    """Get or create Pinecone index connection (singleton)."""
+    global _pinecone_client, _pinecone_index
+    if _pinecone_index is None:
+        settings = get_settings()
+        _pinecone_client = Pinecone(api_key=settings.pinecone_api_key)
+        _pinecone_index = _pinecone_client.Index(settings.pinecone_index_name)
+    return _pinecone_index

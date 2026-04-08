@@ -10,11 +10,11 @@ supabase==2.9.1
 # Vector Store
 pinecone-client==5.0.1
 
-# Embeddings
-voyageai==0.3.2
-
-# LLM
-google-generativeai==0.8.3
+# LangChain + Google GenAI
+langchain>=0.3.0
+langchain-google-genai>=2.0.0
+langchain-community>=0.3.0
+langchain-pinecone>=0.2.0
 
 # Document Parsing
 PyPDF2==3.0.1
@@ -22,3 +22,6 @@ python-docx==1.1.2
 
 # Text Chunking
 langchain-text-splitters==0.3.2
+
+# SSE Streaming
+sse-starlette>=2.0.0
