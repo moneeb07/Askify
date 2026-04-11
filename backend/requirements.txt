@@ -25,3 +25,5 @@ langchain-text-splitters==0.3.2
 
 # SSE Streaming
 sse-starlette>=2.0.0
+
+langchain-groq>=0.1.0

@@ -15,9 +15,8 @@ export default function Home() {
     <>
       {/* ===== Navigation ===== */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? "nav-scrolled" : ""
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "nav-scrolled" : ""
+          }`}
       >
         <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
           <span
@@ -525,7 +524,7 @@ export default function Home() {
           <div className="mt-10">
             <a
               id="cta-bottom"
-              href="/chat"
+              href="/guid"
               className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.1em] px-7 py-3 rounded-md transition-all duration-200"
               style={{
                 background: "var(--accent)",

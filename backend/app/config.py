@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_groq import ChatGroq
 from pinecone import Pinecone
 
 
@@ -22,6 +23,7 @@ class Settings(BaseSettings):
 
     # ── Gemini ──
     gemini_api_key: str = ""
+    groq_api_key: str = ""
 
     # ── App Config ──
     cors_origins: str = "http://localhost:3000"
@@ -63,16 +65,16 @@ def get_embeddings() -> GoogleGenerativeAIEmbeddings:
     return _embeddings
 
 
-def get_llm() -> ChatGoogleGenerativeAI:
-    """Get or create Gemini 2.5 Flash LLM client (singleton)."""
+def get_llm() -> ChatGroq:
+    """Get or create Groq LLM client (singleton)."""
     global _llm
     if _llm is None:
         settings = get_settings()
-        _llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            google_api_key=settings.gemini_api_key,
+        _llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
             temperature=0.3,
             streaming=True,
+            api_key=settings.groq_api_key,
         )
     return _llm
 
