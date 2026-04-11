@@ -57,8 +57,8 @@ export type SseEventPayload = {
   data: unknown;
 };
 
-// Instead of just '/api'
-const API_PREFIX = 'http://localhost:8000/api';
+// Uses NEXT_PUBLIC_API_URL from .env (e.g. http://localhost:8000/api locally, https://your-backend.com/api in production)
+const API_PREFIX = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 const parseJsonSafe = async <T>(response: Response): Promise<T> => {
   const text = await response.text();
