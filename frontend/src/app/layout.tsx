@@ -4,8 +4,9 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/hooks/context/ThemeContext";
 import { Toaster } from "@/components/ui/toaster";
+import AppHeader from "@/components/AppHeader";
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -25,6 +26,24 @@ export const metadata: Metadata = {
     "Upload documents and have intelligent, agentic conversations with them. Powered by AI that autonomously searches, summarizes, and reasons across your files.",
 };
 
+/**
+ * Inline script that runs before React hydrates.
+ * Reads the stored theme from localStorage and applies it to <html>
+ * to prevent a flash of incorrect theme.
+ */
+const themeInitScript = `
+(function(){
+  try {
+    var t = localStorage.getItem('app-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.classList.add(t);
+  } catch(e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.classList.add('dark');
+  }
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,19 +52,22 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", dmSans.variable, dmMono.variable, "font-sans", geist.variable)}
+      suppressHydrationWarning
+      className={cn(
+        "h-full antialiased",
+        dmSans.variable,
+        dmMono.variable,
+        geist.variable,
+        "font-sans"
+      )}
     >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap"
-          rel="stylesheet"
-        />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body>
+      <body className="flex min-h-screen flex-col">
         <ThemeProvider>
-          {children}
+          <AppHeader />
+          <main className="flex flex-1 flex-col min-h-0">{children}</main>
         </ThemeProvider>
         <Toaster />
       </body>

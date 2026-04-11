@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark';
 
-const DEFAULT_THEME: Theme = 'light';
+const DEFAULT_THEME: Theme = 'dark';
 const THEME_STORAGE_KEY = 'app-theme';
 
 const applyThemeToDOM = (theme: Theme) => {

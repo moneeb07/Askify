@@ -8,7 +8,13 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "next/navigation";
-import { Loader2, AlertCircle, ChevronDown, Send, Sparkles } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  ChevronDown,
+  Send,
+  Sparkles,
+} from "lucide-react";
 
 import { qnqApi } from "@/services/qnqApi";
 import type {
@@ -169,15 +175,11 @@ const extractSourcesFromEvent = (payload: SseEventPayload): SourceChunk[] => {
 
   if (data && typeof data === "object") {
     const record = data as Record<string, unknown>;
-    if (Array.isArray(record.sources)) {
-      return parseChunks(record.sources);
-    }
-    if (Array.isArray(record.references)) {
+    if (Array.isArray(record.sources)) return parseChunks(record.sources);
+    if (Array.isArray(record.references))
       return parseChunks(record.references);
-    }
-    if (eventLower === "sources" && Array.isArray(record.chunks)) {
+    if (eventLower === "sources" && Array.isArray(record.chunks))
       return parseChunks(record.chunks);
-    }
   }
 
   return [];
@@ -195,22 +197,19 @@ const formatSourcesMarkdown = (sources: SourceChunk[]): string => {
   return `\n\n### Sources\n${lines.join("\n")}`;
 };
 
-/* ─── Inline MessageBubble ─── */
+/* ─── MessageBubble ─── */
 const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
   const isUser = message.role === "user";
   return (
     <div
-      className={cn(
-        "flex w-full",
-        isUser ? "justify-end" : "justify-start"
-      )}
+      className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
     >
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap transition-all",
+          "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
           isUser
             ? "bg-primary text-primary-foreground rounded-br-md"
-            : "bg-muted text-foreground rounded-bl-md border border-border/50"
+            : "bg-muted text-foreground rounded-bl-md border border-border"
         )}
       >
         {message.content}
@@ -219,7 +218,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
   );
 };
 
-/* ─── Inline MessageList ─── */
+/* ─── MessageList ─── */
 const MessageList: React.FC<{ messages: ChatMessage[] }> = ({ messages }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -241,7 +240,7 @@ const MessageList: React.FC<{ messages: ChatMessage[] }> = ({ messages }) => {
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto px-2 py-4 scrollbar-thin">
+    <div className="flex h-full flex-col gap-3 overflow-y-auto px-4 py-4">
       {messages.map((msg) => (
         <MessageBubble key={msg.id} message={msg} />
       ))}
@@ -250,20 +249,20 @@ const MessageList: React.FC<{ messages: ChatMessage[] }> = ({ messages }) => {
   );
 };
 
-/* ─── ThinkingPanel (replaces Arco Collapse) ─── */
+/* ─── ThinkingPanel ─── */
 const ThinkingPanel: React.FC<{ steps: string[] }> = ({ steps }) => {
   const [open, setOpen] = useState(true);
   if (steps.length === 0) return null;
 
   return (
-    <div className="shrink-0 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm overflow-hidden transition-all">
+    <div className="shrink-0 rounded-xl border border-border bg-card overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
         <span className="flex items-center gap-2">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-500" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: "var(--accent-color)" }} />
           Agent is thinking…
         </span>
         <ChevronDown
@@ -317,7 +316,7 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
 
   const isDocumentReady = documentStatus === "ready";
 
-  /* ── restore from localStorage ── */
+  /* restore from localStorage */
   useEffect(() => {
     suggestionsLoadedRef.current = false;
     initialPromptConsumedRef.current = false;
@@ -355,7 +354,7 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
     );
   }, [documentId, storageKey]);
 
-  /* ── poll document status ── */
+  /* poll document status */
   useEffect(() => {
     let cancelled = false;
 
@@ -397,9 +396,7 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
           if (cancelled) return;
           console.error("[Conversation] Poll status failed:", error);
           setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Failed to poll status"
+            error instanceof Error ? error.message : "Failed to poll status"
           );
         });
     }, POLL_INTERVAL_MS);
@@ -410,7 +407,7 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
     };
   }, [documentId]);
 
-  /* ── load suggestions ── */
+  /* load suggestions */
   useEffect(() => {
     if (!isDocumentReady || suggestionsLoadedRef.current) return;
     suggestionsLoadedRef.current = true;
@@ -424,7 +421,7 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
       });
   }, [documentId, isDocumentReady]);
 
-  /* ── persistence ── */
+  /* persistence */
   const persistHistory = useCallback(
     (nextTurns: StoredTurn[]) => {
       try {
@@ -436,7 +433,7 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
     [storageKey]
   );
 
-  /* ── send message ── */
+  /* send message */
   const executeSend = useCallback(
     async (rawQuestion: string) => {
       const question = rawQuestion.trim();
@@ -455,7 +452,6 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
         createdAt: Date.now(),
       };
 
-      // Add user message
       setMessages((prev) => [
         ...prev,
         {
@@ -490,7 +486,6 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
 
         assistantContent += token;
 
-        // Stream update — overwrite the assistant message content
         setMessages((prev) => {
           const existing = prev.find((m) => m.id === assistantMsgId);
           if (existing) {
@@ -588,7 +583,7 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
     ]
   );
 
-  /* ── auto-fire initial prompt ── */
+  /* auto-fire initial prompt */
   useEffect(() => {
     if (!isDocumentReady || initialPromptConsumedRef.current) return;
     const key = `qnq_initial_question_${documentId}`;
@@ -600,13 +595,8 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
     void executeSend(initialPrompt);
   }, [documentId, executeSend, isDocumentReady]);
 
-  const handleSendClick = () => {
-    void executeSend(input);
-  };
-
-  const handleSuggestionClick = (suggestion: string) => {
-    void executeSend(suggestion);
-  };
+  const handleSendClick = () => void executeSend(input);
+  const handleSuggestionClick = (s: string) => void executeSend(s);
 
   const handleClearConversation = () => {
     setHistoryTurns([]);
@@ -617,80 +607,71 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
 
   /* ═══ Render ═══ */
   return (
-    <div
-      className="h-full w-full min-h-0 overflow-hidden"
-      style={{
-        background:
-          "radial-gradient(1200px 520px at 20% -10%, hsl(220 60% 30% / 0.18), transparent 60%), var(--bg-base, #0a0a0b)",
-      }}
-    >
-      <div className="max-w-[1000px] w-full h-full min-h-0 mx-auto px-4 py-4 md:px-5 md:py-5 flex flex-col gap-3">
-        {/* ── Header Card ── */}
-        <div className="shrink-0 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm px-4 py-3 shadow-lg shadow-black/5">
-          <div className="flex items-center justify-between flex-wrap gap-2.5">
-            {/* Left: Doc info */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Document:</span>
-              <span className="text-sm font-medium text-foreground">
-                {metadata?.name || documentId}
+    <div className="flex flex-col h-[calc(100vh-56px)] overflow-hidden bg-background">
+      {/* ── Top Bar ── */}
+      <div className="shrink-0 border-b border-border bg-card px-4 py-3">
+        <div className="mx-auto flex max-w-[1000px] items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Document:</span>
+            <span className="text-sm font-medium text-foreground">
+              {metadata?.name || documentId}
+            </span>
+            {documentStatus && (
+              <Badge variant={statusBadgeVariant[documentStatus]} dot>
+                {statusTextMap[documentStatus]}
+              </Badge>
+            )}
+            {!isDocumentReady && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <span className="text-xs text-muted-foreground">
+                Deep Analysis
               </span>
-              {documentStatus && (
-                <Badge variant={statusBadgeVariant[documentStatus]} dot>
-                  {statusTextMap[documentStatus]}
-                </Badge>
-              )}
-              {!isDocumentReady && (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-              )}
-            </div>
-            {/* Right: Controls */}
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <span className="text-xs text-muted-foreground">
-                  Deep Analysis
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={deepAnalysis}
-                  onClick={() => setDeepAnalysis((prev) => !prev)}
-                  className={cn(
-                    "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    deepAnalysis ? "bg-violet-500" : "bg-muted"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200",
-                      deepAnalysis ? "translate-x-4" : "translate-x-0"
-                    )}
-                  />
-                </button>
-              </label>
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-                onClick={handleClearConversation}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={deepAnalysis}
+                onClick={() => setDeepAnalysis((prev) => !prev)}
+                className={cn(
+                  "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  deepAnalysis ? "bg-[var(--accent-color)]" : "bg-muted"
+                )}
               >
-                Clear Chat
-              </Button>
-            </div>
+                <span
+                  className={cn(
+                    "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200",
+                    deepAnalysis ? "translate-x-4" : "translate-x-0"
+                  )}
+                />
+              </button>
+            </label>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={handleClearConversation}
+            >
+              Clear Chat
+            </Button>
           </div>
         </div>
+      </div>
 
-        {/* ── Error Alert ── */}
+      {/* ── Alerts (shrink-0, above messages) ── */}
+      <div className="shrink-0 mx-auto w-full max-w-[1000px] px-4 space-y-2 mt-2">
         {errorMessage && (
-          <Alert variant="destructive" className="shrink-0 rounded-2xl">
+          <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         )}
 
-        {/* ── Processing Alert ── */}
         {!isDocumentReady && (
-          <Alert className="shrink-0 rounded-2xl">
+          <Alert>
             <Loader2 className="h-4 w-4 animate-spin" />
             <AlertTitle>Processing</AlertTitle>
             <AlertDescription>
@@ -700,69 +681,66 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
           </Alert>
         )}
 
-        {/* ── Thinking Steps ── */}
         <ThinkingPanel steps={thinkingSteps} />
+      </div>
 
-        {/* ── Chat Messages Area ── */}
-        <div className="flex-1 min-h-0 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm p-1.5 md:p-2 overflow-hidden shadow-lg shadow-black/5">
-          <div className="h-full min-h-0">
-            <MessageList messages={messages} />
+      {/* ── Messages (flex-1, scrollable) ── */}
+      <div className="flex-1 min-h-0 overflow-hidden mx-auto w-full max-w-[1000px]">
+        <MessageList messages={messages} />
+      </div>
+
+      {/* ── Suggestions (above input, shrink-0) ── */}
+      {suggestions.length > 0 && isDocumentReady && (
+        <div className="shrink-0 border-t border-border bg-card px-4 py-2">
+          <div className="mx-auto max-w-[1000px] flex flex-wrap gap-2">
+            {suggestions.map((suggestion) => (
+              <Button
+                key={suggestion}
+                variant="outline"
+                size="sm"
+                className="rounded-full text-xs"
+                onClick={() => handleSuggestionClick(suggestion)}
+              >
+                {suggestion}
+              </Button>
+            ))}
           </div>
         </div>
+      )}
 
-        {/* ── Suggestions ── */}
-        {suggestions.length > 0 && isDocumentReady && (
-          <div className="shrink-0 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm px-4 py-3 max-h-[180px] overflow-auto shadow-md shadow-black/5">
-            <div className="flex flex-wrap gap-2">
-              {suggestions.map((suggestion) => (
-                <Button
-                  key={suggestion}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full text-xs"
-                  onClick={() => handleSuggestionClick(suggestion)}
-                >
-                  {suggestion}
-                </Button>
-              ))}
-            </div>
+      {/* ── Input Area (fixed footer, never scrolls) ── */}
+      <div className="shrink-0 border-t border-border bg-card px-4 py-3">
+        <div className="mx-auto max-w-[1000px] space-y-2">
+          <div className="rounded-xl border border-border px-3 py-2.5 bg-background focus-within:border-ring/60 focus-within:ring-1 focus-within:ring-ring/30 transition-all">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              rows={2}
+              className="min-h-[48px] max-h-[160px] w-full resize-none bg-transparent border-none p-0 text-sm leading-relaxed placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:outline-none shadow-none"
+              placeholder="Ask a question about your document"
+              disabled={!isDocumentReady || sending}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendClick();
+                }
+              }}
+            />
           </div>
-        )}
-
-        {/* ── Input Area ── */}
-        <div className="shrink-0 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm px-4 py-3 shadow-lg shadow-black/5">
-          <div className="space-y-2.5">
-            <div className="rounded-xl border border-border/50 px-3 py-2.5 bg-background/50 focus-within:border-ring/60 focus-within:ring-1 focus-within:ring-ring/30 transition-all">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                rows={3}
-                className="min-h-[60px] max-h-[200px] w-full resize-none bg-transparent border-none p-0 text-sm leading-relaxed placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:outline-none shadow-none"
-                placeholder="Ask a question about your document"
-                disabled={!isDocumentReady || sending}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendClick();
-                  }
-                }}
-              />
-            </div>
-            <div className="flex justify-end">
-              <Button
-                variant="default"
-                className="rounded-full bg-foreground text-background hover:bg-foreground/90 disabled:bg-muted disabled:text-muted-foreground gap-2"
-                disabled={!isDocumentReady || !input.trim() || sending}
-                onClick={handleSendClick}
-              >
-                {sending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                Send
-              </Button>
-            </div>
+          <div className="flex justify-end">
+            <Button
+              variant="default"
+              className="rounded-full gap-2"
+              disabled={!isDocumentReady || !input.trim() || sending}
+              onClick={handleSendClick}
+            >
+              {sending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Send
+            </Button>
           </div>
         </div>
       </div>
@@ -779,8 +757,8 @@ export default function ConversationPage() {
 
   if (!id) {
     return (
-      <div className="h-full p-6">
-        <Alert variant="destructive" className="rounded-2xl">
+      <div className="flex flex-1 items-center justify-center p-6">
+        <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>Missing document id in route.</AlertDescription>
