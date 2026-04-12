@@ -21,7 +21,7 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Askify — Intelligent Document Conversations",
+  title: "Askify | Intelligent Document Conversations",
   description:
     "Upload documents and have intelligent, agentic conversations with them. Powered by AI that autonomously searches, summarizes, and reasons across your files.",
 };
