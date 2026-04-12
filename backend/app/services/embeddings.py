@@ -9,7 +9,7 @@ from app.config import get_embeddings
 
 async def embed_chunks(chunks: list[str]) -> list[list[float]]:
     """
-    Generate embeddings for a list of text chunks.
+    Generate embeddings for a list of text chunks in batches.
 
     Uses GoogleGenerativeAIEmbeddings (models/embedding-001).
     Output dimension: 768.
@@ -21,8 +21,16 @@ async def embed_chunks(chunks: list[str]) -> list[list[float]]:
         List of embedding vectors (one per chunk)
     """
     embeddings_client = get_embeddings()
-    # embed_documents is sync in langchain-google-genai, run it directly
-    return embeddings_client.embed_documents(chunks)
+    
+    all_embeddings = []
+    batch_size = 10  # Google API can easily timeout on large payloads; batching fixes this
+    
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i : i + batch_size]
+        batch_embeddings = embeddings_client.embed_documents(batch)
+        all_embeddings.extend(batch_embeddings)
+        
+    return all_embeddings
 
 
 async def embed_query(query: str) -> list[float]:
