@@ -46,6 +46,7 @@ async def upload_document(
     4. Trigger background processing pipeline
     5. Return document_id immediately
     """
+    print("reached")
     settings = get_settings()
 
     # Validate file type

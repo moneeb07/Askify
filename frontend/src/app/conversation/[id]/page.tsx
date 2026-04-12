@@ -15,6 +15,8 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { qnqApi } from "@/services/qnqApi";
 import type {
@@ -43,6 +45,7 @@ type StoredTurn = {
   role: "user" | "assistant";
   content: string;
   createdAt: number;
+  sources?: SourceChunk[];
 };
 
 type ChatMessage = {
@@ -50,6 +53,7 @@ type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   createdAt: number;
+  sources?: SourceChunk[];
 };
 
 /* ─── constants ─── */
@@ -176,7 +180,7 @@ const extractSourcesFromEvent = (payload: SseEventPayload): SourceChunk[] => {
   if (data && typeof data === "object") {
     const record = data as Record<string, unknown>;
     if (Array.isArray(record.sources)) return parseChunks(record.sources);
-    if (Array.isArray(record.references))
+    if (Array.isArray(record.references)) // api uses refrences instead of sources
       return parseChunks(record.references);
     if (eventLower === "sources" && Array.isArray(record.chunks))
       return parseChunks(record.chunks);
@@ -185,35 +189,65 @@ const extractSourcesFromEvent = (payload: SseEventPayload): SourceChunk[] => {
   return [];
 };
 
-const formatSourcesMarkdown = (sources: SourceChunk[]): string => {
-  if (!sources.length) return "";
-  const lines = sources.map((source, index) => {
-    const scorePart =
-      typeof source.score === "number"
-        ? ` (score: ${source.score.toFixed(3)})`
-        : "";
-    return `${index + 1}. ${source.text}${scorePart}`;
-  });
-  return `\n\n### Sources\n${lines.join("\n")}`;
-};
-
 /* ─── MessageBubble ─── */
 const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
   const isUser = message.role === "user";
+  const [showSources, setShowSources] = useState(false);
+
   return (
     <div
-      className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
+      className={cn("flex w-full flex-col gap-2", isUser ? "items-end" : "items-start")}
     >
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
+          "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words",
           isUser
             ? "bg-primary text-primary-foreground rounded-br-md"
-            : "bg-muted text-foreground rounded-bl-md border border-border"
+            : "bg-muted text-foreground rounded-bl-md border border-border [&_p:not(:last-child)]:mb-3 [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:my-2 [&_li]:mb-1 [&_ol]:list-decimal [&_ol]:ml-5 [&_ol]:my-2 [&_strong]:font-semibold [&_a]:underline [&_a]:text-blue-500 [&_h3]:font-semibold [&_h3]:text-base [&_h3]:mb-2 [&_h3]:mt-3"
         )}
       >
-        {message.content}
+        {isUser ? (
+          message.content
+        ) : (
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {message.content}
+          </ReactMarkdown>
+        )}
       </div>
+
+      {!isUser && message.sources && message.sources.length > 0 && (
+        <div className="max-w-[80%] w-full flex flex-col gap-2 pt-1 pl-1">
+          <button
+            onClick={() => setShowSources(!showSources)}
+            className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground transition-colors w-fit"
+          >
+            <ChevronDown
+              className={cn("h-3 w-3 transition-transform", showSources && "rotate-180")}
+            />
+            {message.sources.length} Sources
+          </button>
+
+          {showSources && (
+            <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-sm">
+              {message.sources.map((source, idx) => (
+                <div key={idx} className="text-xs space-y-1.5 pb-3 border-b border-border last:pb-0 last:border-0 border-dashed">
+                  <div className="flex items-center justify-between font-medium text-muted-foreground">
+                    <span>Source {idx + 1}</span>
+                    {typeof source.score === "number" && (
+                      <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
+                        {Math.round(source.score * 100)}% Match
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-muted-foreground leading-relaxed line-clamp-4 hover:line-clamp-none transition-all">
+                    {source.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -350,6 +384,7 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
         role: turn.role,
         content: turn.content,
         createdAt: turn.createdAt,
+        sources: turn.sources,
       }))
     );
   }, [documentId, storageKey]);
@@ -543,12 +578,10 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
         }
 
         if (sources.length > 0) {
-          const sourcesMarkdown = formatSourcesMarkdown(sources);
-          assistantContent += sourcesMarkdown;
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMsgId
-                ? { ...m, content: assistantContent }
+                ? { ...m, sources }
                 : m
             )
           );
@@ -560,6 +593,7 @@ const ConversationInner: React.FC<{ documentId: string }> = ({
           role: "assistant",
           content: finalAssistant,
           createdAt: Date.now(),
+          sources: sources.length > 0 ? sources : undefined,
         };
         const nextHistory = [...historyTurns, userTurn, assistantTurn];
         setHistoryTurns(nextHistory);

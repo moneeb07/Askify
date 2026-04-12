@@ -28,9 +28,12 @@ Your job is to answer questions about the provided document context accurately a
 Rules:
 - Base your answer ONLY on the provided document context below.
 - If the context doesn't contain enough information to answer, say so clearly.
-- Cite which part of the document your answer comes from when possible.
 - Be precise, structured, and avoid hallucinating information.
 - If the user asks something unrelated to the document, politely redirect them.
+- NEVER mention chunks, chunk numbers, relevance scores, retrieval details, or any internal system metadata in your response.
+- Do NOT include phrases like "Chunk 0.0", "(score: 0.664)", "Based on the retrieved chunks", etc.
+- Write your response as a natural, well-formatted answer. Use markdown formatting (headings, bullet points, bold) for readability.
+- When referencing parts of the document, describe them naturally (e.g., "In the introduction section..." or "According to the document...").
 
 Document Context:
 {context}
@@ -74,10 +77,8 @@ async def ask_with_rag(
 
     # Step 2: Retrieve top 5 relevant chunks from Pinecone
     chunks = await query_vectors(document_id, query_embedding, top_k=5)
-    context_text = "\n\n---\n\n".join(
-        f"[Chunk {c['chunk_index']}] (relevance: {c['score']:.2f})\n{c['text']}"
-        for c in chunks
-    )
+    # Build clean context without chunk metadata — just the text content
+    context_text = "\n\n---\n\n".join(c['text'] for c in chunks)
 
     # Step 3: Build message list with history
     messages = [SystemMessage(content=RAG_SYSTEM_PROMPT.format(context=context_text))]
